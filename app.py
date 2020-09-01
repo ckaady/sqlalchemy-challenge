@@ -43,8 +43,8 @@ def welcome():
         f"<a href='/api/v1.0/stations'>Stations</a><br/>"
         f"<a href='/api/v1.0/tobs'>Temperature Observation Data</a><br/>"
         f"Use yyyy-mm-dd format when entering date in URLs below:<br/>"
-        f"<a href='/api/v1.0/temp/<start>'>Start Date</a><br/>"
-        f"<a href='/api/v1.0/temp/<start>/<end>'>Start Date / End Date</a><br/>"
+        f"<a href='/api/v1.0/start_date/2017-01-01'>start_date/2017-01-01</a><br/>"
+        f"<a href='/api/v1.0/start_and_end_dates/2017-01-01/2017-01-15'>start_and_end_dates/2017-01-01/2017-01-15</a><br/>"    
 
     )
 
@@ -116,10 +116,51 @@ def tobs():
 
 
 
-############ START AND START DATE/END DATE############
-# @app.route("/api/v1.0/<start>")
-# @app.route("/api/v1.0/<start>/<end>")
+############ START DATE ############
+@app.route("/api/v1.0/start_date/<start>")
+def start_date(start):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
 
+    # Query the start date to retrieve TMIN,TAVG,TMAX for all dates greater and equal to start
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start).all()
+
+    session.close()
+
+    # Convert list of tuples into normal list
+    all_results = list(np.ravel(results))
+
+    return jsonify(all_results)
+
+
+
+############ START DATE/END DATE ############
+@app.route("/api/v1.0/start_and_end_dates/<start>/<end>")
+def start_and_end_dates(start,end):
+
+# Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    """TMIN, TAVG, and TMAX for a list of dates.
+    
+    Args:
+        start_date (string): A date string in the format %Y-%m-%d
+        end_date (string): A date string in the format %Y-%m-%d
+        
+    Returns:
+        TMIN, TAVE, and TMAX
+    """
+    # Query the start and end dates to retrieve TMIN,TAVG,TMAX for dates between and inclusive of those given
+    results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+        filter(Measurement.date >= start).filter(Measurement.date <= end).all()
+
+    session.close()
+
+     # Convert list of tuples into normal list
+    all_results = list(np.ravel(results))
+
+    return jsonify(all_results)
 
 
 if __name__ == '__main__':
